@@ -28,8 +28,6 @@ def dbf_to_csv(dbf_file_path, output_path, file_name, original_filename):
         # Save the DataFrame as a CSV file using UTF-8 encoding
         df.to_csv(output_file, index=False, encoding='utf-8')
 
-        # IMPROVEMENT: Using the 'original_filename' variable (like 'file.dbf') 
-        # makes the log message more accurate than hardcoding '.dbc'.
         print(f"SUCCESS: File '{original_filename}' was converted to '{file_name}.csv'")
         return True
 
