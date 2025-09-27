@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-from sqlalchemy import create_engine, types # Alteração 1: Importado o 'types'
+from sqlalchemy import create_engine, types
 
 DB_USER = 'postgres'
 DB_PASSWORD = '1234'  
@@ -8,56 +8,119 @@ DB_HOST = 'localhost'
 DB_PORT = '5432'
 DB_NAME = 'dados_brutos_sus'
 
-CSV_INPUT_PATH = "output_csv/"
-TARGET_TABLE_NAME = 'dados_brutos_aih'
+# Define os caminhos e nomes das tabelas
+AIH_INPUT_PATH = "output_csv/"
+PROC_INPUT_FILE = "input_lookup/procedimento.csv"
+CID_INPUT_FILE = "input_lookup/cid.csv"
+CNES_INPUT_PATH = "cnes_csv/"
+
+TARGET_TABLE_AIH = "dados_brutos_aih"
+TARGET_TABLE_PROC = "dados_brutos_procedimentos"
+TARGET_TABLE_CID = "dados_brutos_cid"
+TARGET_TABLE_CNES = "dados_brutos_cnes"
 
 if __name__ == "__main__":
     try:
         connection_string = f'postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
         engine = create_engine(connection_string)
-        print("Successfully connected to the PostgreSQL database.")
+        print("Successfully connected to the PostgreSQL database.\n")
     except Exception as e:
-        print(f"Error: Could not connect to the database. Please check your configuration. Details: {e}")
+        print(f"Error: Could not connect to the database. Details: {e}")
         exit()
 
-    if not os.path.isdir(CSV_INPUT_PATH):
-        print(f"Error: The input directory '{CSV_INPUT_PATH}' was not found.")
-        exit()
-
-    csv_files = [f for f in os.listdir(CSV_INPUT_PATH) if f.lower().endswith('.csv')]
-
-    if not csv_files:
-        print(f"No CSV files found in '{CSV_INPUT_PATH}'. Nothing to import.")
-        exit()
-
-    print(f"Found {len(csv_files)} CSV files to import into the '{TARGET_TABLE_NAME}' table.")
-
-    for file_name in csv_files:
-        file_path = os.path.join(CSV_INPUT_PATH, file_name)
-        print(f"Processing '{file_name}'...")
-
+    # # --- TAREFA 1: Importar Dados de Internação (AIH) ---
+    print("--- Starting Task 1: Hospitalizations (AIH) ---")
+    if os.path.isdir(AIH_INPUT_PATH):
+        csv_files = [f for f in os.listdir(AIH_INPUT_PATH) if f.lower().endswith('.csv')]
+        print(f"Found {len(csv_files)} AIH files to import.")
+        for file_name in csv_files:
+            file_path = os.path.join(AIH_INPUT_PATH, file_name)
+            try:
+                df = pd.read_csv(file_path, sep=',', low_memory=False, encoding='utf-8')
+                df.columns = df.columns.str.lower()
+                dtype_mapping = {col: types.VARCHAR(length=255) for col in df.columns}
+                df.to_sql(name=TARGET_TABLE_AIH, con=engine, if_exists='append', index=False, dtype=dtype_mapping)
+                print(f"SUCCESS: Appended '{file_name}' to '{TARGET_TABLE_AIH}'.")
+            except Exception as e:
+                print(f"ERROR processing '{file_name}': {e}")
+    else:
+        print(f"Warning: Directory '{AIH_INPUT_PATH}' not found. Skipping AIH import.")
+    print("--- Finished Task 1 ---\n")
+    
+    # --- TAREFA 2: Importar Dados de Procedimentos ---
+    print("--- Starting Task 2: Procedures ---")
+    if os.path.isfile(PROC_INPUT_FILE):
         try:
-            # Reads the CSV file. Adjust 'sep' and 'encoding' as necessary.
-            df = pd.read_csv(file_path, sep=',', low_memory=False, encoding='utf-8')
-
-            # Converts column names to lowercase for easier SQL querying.
-            df.columns = df.columns.str.lower()
-
-            # Alteração 2: Mapeia todas as colunas para o tipo VARCHAR (texto).
-            # Isso previne erros de inferência de tipo de dados.
-            dtype_mapping = {col: types.VARCHAR(length=255) for col in df.columns}
-
-            # Anexa o conteúdo do DataFrame à tabela do banco de dados.
-            df.to_sql(
-                name=TARGET_TABLE_NAME,
-                con=engine,
-                if_exists='append',
-                index=False,
-                dtype=dtype_mapping  # Alteração 3: Aplica o mapeamento de tipos.
-            )
-            print(f"SUCCESS: Data from '{file_name}' was appended to the '{TARGET_TABLE_NAME}' table.")
-
+            df_proc = pd.read_csv(PROC_INPUT_FILE, sep=';', low_memory=False, encoding='utf-8')
+            df_proc.columns = df_proc.columns.str.lower()
+            dtype_mapping = {col: types.VARCHAR(length=255) for col in df_proc.columns}
+            df_proc.to_sql(name=TARGET_TABLE_PROC, con=engine, if_exists='replace', index=False, dtype=dtype_mapping)
+            print(f"SUCCESS: Loaded '{PROC_INPUT_FILE}' into '{TARGET_TABLE_PROC}'. Table was replaced.")
         except Exception as e:
-            print(f"ERROR: Failed to process '{file_name}'. Details: {e}")
+            print(f"ERROR processing '{PROC_INPUT_FILE}': {e}")
+    else:
+        print(f"Warning: File '{PROC_INPUT_FILE}' not found. Skipping Procedure import.")
+    print("--- Finished Task 2 ---\n")
 
-    print("\nData import process finished.")
+    # --- TAREFA 3: Importar Dados de CID ---
+    print("--- Starting Task 3: CIDs ---")
+    if os.path.isfile(CID_INPUT_FILE):
+        try:
+            df_cid = pd.read_csv(CID_INPUT_FILE, sep=';', low_memory=False, encoding='utf-8')
+            df_cid.columns = df_cid.columns.str.lower()
+            dtype_mapping = {col: types.TEXT for col in df_cid.columns}
+            df_cid.to_sql(name=TARGET_TABLE_CID, con=engine, if_exists='replace', index=False, dtype=dtype_mapping)
+            print(f"SUCCESS: Loaded '{CID_INPUT_FILE}' into '{TARGET_TABLE_CID}'. Table was replaced.")
+        except Exception as e:
+            print(f"ERROR processing '{CID_INPUT_FILE}': {e}")
+    else:
+        print(f"Warning: File '{CID_INPUT_FILE}' not found. Skipping CID import.")
+    print("--- Finished Task 3 ---\n")
+
+    # --- TAREFA 4: Importar Dados de Estabelecimentos (CNES) ---
+    print("--- Starting Task 4: CNES Establishments ---")
+    if os.path.isdir(CNES_INPUT_PATH):
+        cnes_files = [f for f in os.listdir(CNES_INPUT_PATH) if f.lower().endswith('.csv')]
+        print(f"Found {len(cnes_files)} CNES files to process.")
+        
+        # Lista para guardar todos os DataFrames lidos
+        list_of_dfs = []
+        for file_name in cnes_files:
+            file_path = os.path.join(CNES_INPUT_PATH, file_name)
+            print(f"Reading '{file_name}' into memory...")
+            try:
+                # Lê cada arquivo e adiciona à lista
+                df_cnes = pd.read_csv(file_path, sep=',', low_memory=False, encoding='latin1', quotechar='"')
+                list_of_dfs.append(df_cnes)
+            except Exception as e:
+                print(f"ERROR reading '{file_name}': {e}")
+        
+        if list_of_dfs:
+            try:
+                # Concatena todos os DataFrames da lista em um só
+                print("\nConcatenating all CNES files... This may take a moment.")
+                master_df = pd.concat(list_of_dfs, ignore_index=True)
+                
+                print(f"Concatenation complete. Total rows: {len(master_df)}")
+                
+                master_df.columns = master_df.columns.str.lower()
+                dtype_mapping = {col: types.VARCHAR(length=255) for col in master_df.columns}
+
+                print(f"Loading all {len(master_df)} rows into '{TARGET_TABLE_CNES}'...")
+                # Usa 'replace' para garantir uma carga limpa e 'chunksize' para eficiência
+                master_df.to_sql(
+                    name=TARGET_TABLE_CNES, 
+                    con=engine, 
+                    if_exists='replace', 
+                    index=False, 
+                    dtype=dtype_mapping,
+                    chunksize=10000  # Carrega em lotes de 10000 linhas para economizar memória
+                )
+                print(f"SUCCESS: All CNES data loaded into '{TARGET_TABLE_CNES}'.")
+            except Exception as e:
+                print(f"ERROR during concatenation or database load: {e}")
+    else:
+        print(f"Warning: Directory '{CNES_INPUT_PATH}' not found. Skipping CNES import.")
+    print("--- Finished Task 4 ---\n")
+
+    print("All import tasks finished.")
