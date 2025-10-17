@@ -13,11 +13,13 @@ AIH_INPUT_PATH = "output_csv/"
 PROC_INPUT_FILE = "input_lookup/procedimento.csv"
 CID_INPUT_FILE = "input_lookup/cid.csv"
 CNES_INPUT_PATH = "cnes_csv/"
+MUN_INPUT_FILE = "input_lookup/municipios_bahia.csv"
 
 TARGET_TABLE_AIH = "dados_brutos_aih"
 TARGET_TABLE_PROC = "dados_brutos_procedimentos"
 TARGET_TABLE_CID = "dados_brutos_cid"
 TARGET_TABLE_CNES = "dados_brutos_cnes"
+TARGET_TABLE_MUN = "dados_brutos_municipios"
 
 if __name__ == "__main__":
     try:
@@ -28,7 +30,7 @@ if __name__ == "__main__":
         print(f"Error: Could not connect to the database. Details: {e}")
         exit()
 
-    # # --- TAREFA 1: Importar Dados de Internação (AIH) ---
+    # --- TAREFA 1: Importar Dados de Internação (AIH) ---
     print("--- Starting Task 1: Hospitalizations (AIH) ---")
     if os.path.isdir(AIH_INPUT_PATH):
         csv_files = [f for f in os.listdir(AIH_INPUT_PATH) if f.lower().endswith('.csv')]
@@ -122,5 +124,22 @@ if __name__ == "__main__":
     else:
         print(f"Warning: Directory '{CNES_INPUT_PATH}' not found. Skipping CNES import.")
     print("--- Finished Task 4 ---\n")
+
+    print("--- Starting Task 5: Municipalities ---")
+    if os.path.isfile(MUN_INPUT_FILE):
+        try:
+            # O separador aqui é vírgula ',', conforme o arquivo original do IBGE
+            df_mun = pd.read_csv(MUN_INPUT_FILE, sep=',', low_memory=False, encoding='utf-8')
+            df_mun.columns = df_mun.columns.str.lower()
+            dtype_mapping = {col: types.VARCHAR(length=255) for col in df_mun.columns}
+            
+            # Usamos 'replace' para garantir que a tabela esteja sempre atualizada
+            df_mun.to_sql(name=TARGET_TABLE_MUN, con=engine, if_exists='replace', index=False, dtype=dtype_mapping)
+            print(f"SUCCESS: Loaded '{MUN_INPUT_FILE}' into '{TARGET_TABLE_MUN}'. Table was replaced.")
+        except Exception as e:
+            print(f"ERROR processing '{MUN_INPUT_FILE}': {e}")
+    else:
+        print(f"Warning: File '{MUN_INPUT_FILE}' not found. Skipping Municipality import.")
+    print("--- Finished Task 5 ---\n")
 
     print("All import tasks finished.")
