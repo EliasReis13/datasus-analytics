@@ -3,6 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Status](https://img.shields.io/badge/Status-Completed-green)]()
 [![Tools](https://img.shields.io/badge/Tools-Python%20|%20PostgreSQL%20|%20PowerBI-blue)]()
+[![Dashboard](https://img.shields.io/badge/Power%20BI-Live%20Dashboard-F2C811?style=flat&logo=powerbi&logoColor=black)](https://app.powerbi.com/view?r=eyJrIjoiN2ZlMmJmNmMtZTlhMy00YzdhLWJlYTktYmE2OTkzNjZmNzdhIiwidCI6IjcyNjE3ZGQ4LTM3YTUtNDJhMi04YjIwLTU5ZDJkMGM1MDcwNyJ9)
 
 A comprehensive **Business Intelligence** solution to extract, transform, and analyze public hospitalization data (SIHSUS) from the Brazilian Health System (DATASUS). 
 
@@ -130,7 +131,9 @@ The final deliverable is an interactive Power BI Dashboard containing **9 analyt
 
 ![Executive Overview](bi/screenshots/01_analise_geral.png)
 
-> 💡 **Explore More:** You can view screenshots of all 9 screens in the [Screenshots Folder](bi/screenshots/) or download the **[Power BI File (.pbix)](bi/datasus_bahia.pbix)** to interact with the data directly.
+> 💡 **Explore More:** > * 📊 **[Access the Interactive Dashboard Online](https://app.powerbi.com/view?r=eyJrIjoiN2ZlMmJmNmMtZTlhMy00YzdhLWJlYTktYmE2OTkzNjZmNzdhIiwidCI6IjcyNjE3ZGQ4LTM3YTUtNDJhMi04YjIwLTU5ZDJkMGM1MDcwNyJ9)** (No login required)
+> * 🖼️ View all screenshots in the [Screenshots Folder](bi/screenshots/)
+> * 📥 Download the source **[Power BI File (.pbix)](bi/datasus_bahia.pbix)**
 ### Dashboard Structure:
 
 1.  **Executive Overview:** High-level KPIs (Admissions, Costs, Mortality) and geographical distribution map.
