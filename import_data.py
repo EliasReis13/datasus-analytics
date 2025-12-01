@@ -8,7 +8,7 @@ DB_HOST = 'localhost'
 DB_PORT = '5432'
 DB_NAME = 'dados_brutos_sus'
 
-# Define os caminhos e nomes das tabelas
+# Define the paths and table names
 AIH_INPUT_PATH = "output_csv/"
 PROC_INPUT_FILE = "input_lookup/procedimento.csv"
 CID_INPUT_FILE = "input_lookup/cid.csv"
@@ -30,7 +30,7 @@ if __name__ == "__main__":
         print(f"Error: Could not connect to the database. Details: {e}")
         exit()
 
-    # --- TAREFA 1: Importar Dados de Internação (AIH) ---
+    # --- TASK 1: Import Hospitalization Data (AIH) ---
     print("--- Starting Task 1: Hospitalizations (AIH) ---")
     if os.path.isdir(AIH_INPUT_PATH):
         csv_files = [f for f in os.listdir(AIH_INPUT_PATH) if f.lower().endswith('.csv')]
@@ -49,7 +49,7 @@ if __name__ == "__main__":
         print(f"Warning: Directory '{AIH_INPUT_PATH}' not found. Skipping AIH import.")
     print("--- Finished Task 1 ---\n")
     
-    # --- TAREFA 2: Importar Dados de Procedimentos ---
+    # --- TASK 2: Import Procedure Data ---
     print("--- Starting Task 2: Procedures ---")
     if os.path.isfile(PROC_INPUT_FILE):
         try:
@@ -64,7 +64,7 @@ if __name__ == "__main__":
         print(f"Warning: File '{PROC_INPUT_FILE}' not found. Skipping Procedure import.")
     print("--- Finished Task 2 ---\n")
 
-    # --- TAREFA 3: Importar Dados de CID ---
+    # --- TASK 3: Import ICD Data ---
     print("--- Starting Task 3: CIDs ---")
     if os.path.isfile(CID_INPUT_FILE):
         try:
@@ -79,19 +79,19 @@ if __name__ == "__main__":
         print(f"Warning: File '{CID_INPUT_FILE}' not found. Skipping CID import.")
     print("--- Finished Task 3 ---\n")
 
-    # --- TAREFA 4: Importar Dados de Estabelecimentos (CNES) ---
+    # --- TASK 4: Import Establishment Data (CNES) ---
     print("--- Starting Task 4: CNES Establishments ---")
     if os.path.isdir(CNES_INPUT_PATH):
         cnes_files = [f for f in os.listdir(CNES_INPUT_PATH) if f.lower().endswith('.csv')]
         print(f"Found {len(cnes_files)} CNES files to process.")
         
-        # Lista para guardar todos os DataFrames lidos
+        # List to store all loaded DataFrames
         list_of_dfs = []
         for file_name in cnes_files:
             file_path = os.path.join(CNES_INPUT_PATH, file_name)
             print(f"Reading '{file_name}' into memory...")
             try:
-                # Lê cada arquivo e adiciona à lista
+                # Reads each file and adds it to the list
                 df_cnes = pd.read_csv(file_path, sep=',', low_memory=False, encoding='latin1', quotechar='"')
                 list_of_dfs.append(df_cnes)
             except Exception as e:
@@ -99,7 +99,7 @@ if __name__ == "__main__":
         
         if list_of_dfs:
             try:
-                # Concatena todos os DataFrames da lista em um só
+                # Concatenates all DataFrames in the list into a single one
                 print("\nConcatenating all CNES files... This may take a moment.")
                 master_df = pd.concat(list_of_dfs, ignore_index=True)
                 
@@ -109,14 +109,14 @@ if __name__ == "__main__":
                 dtype_mapping = {col: types.VARCHAR(length=255) for col in master_df.columns}
 
                 print(f"Loading all {len(master_df)} rows into '{TARGET_TABLE_CNES}'...")
-                # Usa 'replace' para garantir uma carga limpa e 'chunksize' para eficiência
+                # Uses 'replace' to ensure a clean load and 'chunksize' for efficiency
                 master_df.to_sql(
                     name=TARGET_TABLE_CNES, 
                     con=engine, 
                     if_exists='replace', 
                     index=False, 
                     dtype=dtype_mapping,
-                    chunksize=10000  # Carrega em lotes de 10000 linhas para economizar memória
+                    chunksize=10000  # Loads in batches of 10,000 rows to save memory
                 )
                 print(f"SUCCESS: All CNES data loaded into '{TARGET_TABLE_CNES}'.")
             except Exception as e:
@@ -128,12 +128,12 @@ if __name__ == "__main__":
     print("--- Starting Task 5: Municipalities ---")
     if os.path.isfile(MUN_INPUT_FILE):
         try:
-            # O separador aqui é vírgula ',', conforme o arquivo original do IBGE
+            # The separator here is a comma ',', as in the original IBGE file
             df_mun = pd.read_csv(MUN_INPUT_FILE, sep=',', low_memory=False, encoding='utf-8')
             df_mun.columns = df_mun.columns.str.lower()
             dtype_mapping = {col: types.VARCHAR(length=255) for col in df_mun.columns}
             
-            # Usamos 'replace' para garantir que a tabela esteja sempre atualizada
+            # We use 'replace' to ensure the table is always updated
             df_mun.to_sql(name=TARGET_TABLE_MUN, con=engine, if_exists='replace', index=False, dtype=dtype_mapping)
             print(f"SUCCESS: Loaded '{MUN_INPUT_FILE}' into '{TARGET_TABLE_MUN}'. Table was replaced.")
         except Exception as e:
